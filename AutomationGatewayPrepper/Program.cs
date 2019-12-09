@@ -1,4 +1,7 @@
-﻿using System;
+﻿using CsvHelper;
+using System;
+using System.IO;
+using System.Text.RegularExpressions;
 
 namespace AutomationGatewayPrepper
 {
@@ -8,9 +11,12 @@ namespace AutomationGatewayPrepper
         {
             Console.WriteLine("AutomationGatewayPrepper Starting...");
 
-            //Shoot out
-            
-            //Commit test
+            using (var reader = new StreamReader(@"C:\Users\Javier\Desktop"))
+            using (var csv = new CsvReader(reader))
+            {
+                csv.Configuration.PrepareHeaderForMatch = (string header, int index) => Regex.Replace(header, @"\s", string.Empty);
+                var records = csv.GetRecords<Configuration>();
+            }
         }
     }
 }
