@@ -11,11 +11,16 @@ namespace AutomationGatewayPrepper
         {
             Console.WriteLine("AutomationGatewayPrepper Starting...");
 
-            using var reader = new StreamReader(@"C:\Users\Javier\Desktop\test.csv");
+            using var reader = new StreamReader(@"C:\Users\Javier\Desktop\Export.csv");
             using var csv = new CsvReader(reader);
             csv.Configuration.PrepareHeaderForMatch = (string header, int index) => Regex.Replace(header, @"\s", string.Empty);
-            var records = csv.GetRecords<Configuration>();
+            csv.Configuration.Delimiter = ",";
+            csv.Configuration.BadDataFound = x =>
+            {
+                Console.WriteLine($"Bad Datarow: {x.RawRecord}");
+            };
 
+            var records = csv.GetRecords<Configuration>();            
             foreach (var item in records)
             {
                 Console.Write("hurray");
