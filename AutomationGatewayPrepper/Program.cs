@@ -11,11 +11,14 @@ namespace AutomationGatewayPrepper
         {
             Console.WriteLine("AutomationGatewayPrepper Starting...");
 
-            using (var reader = new StreamReader(@"C:\Users\Javier\Desktop"))
-            using (var csv = new CsvReader(reader))
+            using var reader = new StreamReader(@"C:\Users\Javier\Desktop\test.csv");
+            using var csv = new CsvReader(reader);
+            csv.Configuration.PrepareHeaderForMatch = (string header, int index) => Regex.Replace(header, @"\s", string.Empty);
+            var records = csv.GetRecords<Configuration>();
+
+            foreach (var item in records)
             {
-                csv.Configuration.PrepareHeaderForMatch = (string header, int index) => Regex.Replace(header, @"\s", string.Empty);
-                var records = csv.GetRecords<Configuration>();
+                Console.Write("hurray");
             }
         }
     }
