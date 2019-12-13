@@ -12,16 +12,23 @@ namespace AutomationGatewayPrepper
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("AutomationGatewayPrepper Starting...");
+            Console.WriteLine("AutomationGatewayPrepper Starting...");            
+
+            var automationChannels = PopulateAutomationChannels();
+            var automationNodeTypes = PopulateAutomationNodeTypes();
+            var automationNodeTypeParameters = new List<AutomationNodeTypeParameter>();
+            var automationNodeInstances = new List<AutomationNodeInstance>();
+            var automationNodeInstanceParameters = new List<AutomationNodeInstanceParameter>();
 
             using var reader = new StreamReader(@"C:\Users\Javier\Desktop\Export.csv");
             using var csv = new CsvReader(reader);
             ConfigureCsvReader(csv);
-
             //Careful when using link on records variable as not all excel rows are loaded into memory unless .ToList() or similar methods are called.
             var records = csv.GetRecords<Configuration>();
+            foreach (var row in records)
+            {
 
-            var automationChannels = PopulateAutomationChannel();
+            }
 
             //Generate csv file to import into UADM
             var randomFileName = "AutoGate_" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv";
@@ -32,8 +39,21 @@ namespace AutomationGatewayPrepper
                 csvWriter.WriteField("#AutomationChannels");
                 csvWriter.NextRecord();
                 csvWriter.WriteRecords(automationChannels);
+                csvWriter.WriteField("#AutomationNodeTypes");
+                csvWriter.NextRecord();
+                csvWriter.WriteRecords(automationNodeTypes);
+                csvWriter.WriteField("#AutomationNodeTypeParameter");
+                csvWriter.NextRecord();
+                csvWriter.WriteRecords(automationNodeTypeParameters);
+                csvWriter.WriteField("#AutomationNodeInstances");
+                csvWriter.NextRecord();
+                csvWriter.WriteRecords(automationNodeInstances);
+                csvWriter.WriteField("#AutomationNodeInstanceParameters");
+                csvWriter.NextRecord();
+                csvWriter.WriteRecords(automationNodeInstanceParameters);
             }
 
+            #region DemoOutput
             /*
              * E.g.
              * DHW_CNC_Machine_FIC_Command_Header_NodeId	Set the Node Id the equipment is in	Signed 16-bit value	2	ShortToSignedWord	AMFMasterPLCMES	DHW_FIC_Command	0001:TS:7:8A0E0007.2495091F.A.4C	0									0	0	0	0	0	0	0	FIC_Command.Header.NodeId	DHW_CNC_Machine	0	0	0	0	1 min
@@ -62,6 +82,23 @@ namespace AutomationGatewayPrepper
              * "OPCInst","AA","False","ChannelId_085cd9f34f1544998d931bc16d2ccbc2","NodeId","s=OPC","OnChange","","None","",""
              * 
              * */
+            #endregion
+        }
+
+        private static List<AutomationNodeType> PopulateAutomationNodeTypes()
+        {
+            var automationNodeTypes = new List<AutomationNodeType>();
+            var ant = new AutomationNodeType();
+            ant.Id = "FIC_Datablock";
+            ant.Name = "FIC_Datablock";
+            ant.Description = "FIC_Datablock";
+            automationNodeTypes.Add(ant);
+            ant = new AutomationNodeType();
+            ant.Id = "FIS_Datablock";
+            ant.Name = "FIS_Datablock";
+            ant.Description = "FIS_Datablock";
+            automationNodeTypes.Add(ant);
+            return automationNodeTypes;
         }
 
         private static void ConfigureCsvReader(CsvReader csv)
@@ -77,7 +114,7 @@ namespace AutomationGatewayPrepper
             };
         }
 
-        private static List<AutomationChannel> PopulateAutomationChannel()
+        private static List<AutomationChannel> PopulateAutomationChannels()
         {
             var automationChannels = new List<AutomationChannel>();
             var ac = new AutomationChannel();
@@ -91,6 +128,16 @@ namespace AutomationGatewayPrepper
             ac.MessageSecurityMode = "None";
             automationChannels.Add(ac);
 
+            ac = new AutomationChannel();
+            ac.Id = "WinCC";
+            ac.Name = "WinCC OPC";
+            ac.ConnectionFamilyType = "Undefined";
+            ac.ConnectionType = "OPCUA";
+            ac.IdentityTokenType = "Anonymous";
+            ac.Address = "opc.tcp://AMFBAY2CONTROL:4862";
+            ac.SecurityPolicy = "None";
+            ac.MessageSecurityMode = "None";
+            automationChannels.Add(ac);
             return automationChannels;
         }
     }
