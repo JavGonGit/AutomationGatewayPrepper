@@ -1,21 +1,26 @@
 ﻿using AutomationGatewayPrepper.Entities.Input;
 using AutomationGatewayPrepper.Entities.Output;
+using AutomationGatewayPrepper.Helpers;
 using CsvHelper;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace AutomationGatewayPrepper
 {
     class Program
     {
+        private const string _fic = "FIC_";
+        private const string _fis = "FIS_";
+        private const string _global = "GLOBAL.";
+        private const string _user = "USER_";
         static void Main(string[] args)
         {
-            Console.WriteLine("AutomationGatewayPrepper Starting...");            
+            Console.WriteLine("AutomationGatewayPrepper Starting...");
 
-            var automationChannels = PopulateAutomationChannels();
-            var automationNodeTypes = PopulateAutomationNodeTypes();
+            
             var automationNodeTypeParameters = new List<AutomationNodeTypeParameter>();
             var automationNodeInstances = new List<AutomationNodeInstance>();
             var automationNodeInstanceParameters = new List<AutomationNodeInstanceParameter>();
@@ -23,11 +28,25 @@ namespace AutomationGatewayPrepper
             using var reader = new StreamReader(@"C:\Users\Javier\Desktop\Export.csv");
             using var csv = new CsvReader(reader);
             ConfigureCsvReader(csv);
-            //Careful when using link on records variable as not all excel rows are loaded into memory unless .ToList() or similar methods are called.
+
+            //Yields one record at a time. Entire file is not loaded into memory.
             var records = csv.GetRecords<Configuration>();
+
+            var automationChannels = PopulateAutomationChannels();
+            var automationNodeTypes = GetAutomationNodeTypes(records);
+
             foreach (var row in records)
             {
-
+                if (!String.IsNullOrEmpty(row.Address))
+                {
+                    //Populate automationNodeTypeParameters
+                    AutomationNodeTypeParameter antp = GetAutomationNodeTypes(automationNodeTypes, row);
+                    automationNodeTypeParameters.Add(antp);
+                }
+                else
+                {
+                    //TODO log bad records
+                }
             }
 
             //Generate csv file to import into UADM
@@ -52,53 +71,71 @@ namespace AutomationGatewayPrepper
                 csvWriter.NextRecord();
                 csvWriter.WriteRecords(automationNodeInstanceParameters);
             }
-
-            #region DemoOutput
-            /*
-             * E.g.
-             * DHW_CNC_Machine_FIC_Command_Header_NodeId	Set the Node Id the equipment is in	Signed 16-bit value	2	ShortToSignedWord	AMFMasterPLCMES	DHW_FIC_Command	0001:TS:7:8A0E0007.2495091F.A.4C	0									0	0	0	0	0	0	0	FIC_Command.Header.NodeId	DHW_CNC_Machine	0	0	0	0	1 min
-             * 
-             * "#AutomationChannels"
-             * "Id","Name","ConnectionFamilyType","ConnectionType","IdentityTokenType","Address","SecurityPolicy","MessageSecurityMode","ReconnectTime","TimeStampMode","UserName","AccessPoint","Rack","Slot","ChangeDrivenRead"
-             * "AutomationChannelId_991f3bd2787f43d2b0154f5cf75e1234","s7","Undefined","S7","Anonymous","MyS7Id_8e0fc398931147c2b6e2076a430e4291","None","None","300","","","MyS7AccPoint","1","2","True"
-             * "ChannelId_085cd9f34f1544998d931bc16d2ccbc2","Name ofChannelId_085cd9f34f1544998d931bc16d2ccbc2tyty","Undefined","OPCUA","Anonymous","opc.tcp://MyServerId_5cc640d68bd24a178003998a0b223ea2","None","None","","","","","","",""
-             * 
-             * "#AutomationNodeTypes"
-             * "Id","Name","Description"
-             * "ANTId_d2542f10cdf040a18be9301c618c9079","Name ofANTId_d2542f10cdf040a18be9301c618c9079","Description ofANTId_d2542f10cdf040a18be9301c618c9079"
-             * 
-             * "AutomationNodeTypeParameters"
-             * "AutomationNodeTypeRef","Id","DataType","ParameterValue","MinValue","MaxValue","MaxLength","IsStatic","IsInternal","IsPersistent"
-             * "ANTId_d2542f10cdf040a18be9301c618c9079","AA","Bool","False","","","","False","False","False"
-             * 
-             * "#AutomationNodeInstances"
-             * "AutomationNodeTypeRef","Id","Name","Description"
-             * "ANTId_d2542f10cdf040a18be9301c618c9079","asas","as","as"
-             * "ANTId_d2542f10cdf040a18be9301c618c9079","OPCInst","",""
-             * 
-             * "#AutomationNodeInstanceParameters"
-             * "AutomationNodeInstanceRef","Id","ParameterValue","ChannelNId","AddressType","Address","AcquisitionMode","AcquisitionCycleNId","SmoothingMode","DeltaValue","DeltaTime"
-             * "asas","AA","False","AutomationChannelId_991f3bd2787f43d2b0154f5cf75e1234","NodeId","S7","OnChange","","None","",""
-             * "OPCInst","AA","False","ChannelId_085cd9f34f1544998d931bc16d2ccbc2","NodeId","s=OPC","OnChange","","None","",""
-             * 
-             * */
-            #endregion
         }
 
-        private static List<AutomationNodeType> PopulateAutomationNodeTypes()
+        private static List<AutomationNodeType> GetAutomationNodeTypes(IEnumerable<Configuration> records)
         {
-            var automationNodeTypes = new List<AutomationNodeType>();
-            var ant = new AutomationNodeType();
-            ant.Id = "FIC_Datablock";
-            ant.Name = "FIC_Datablock";
-            ant.Description = "FIC_Datablock";
-            automationNodeTypes.Add(ant);
-            ant = new AutomationNodeType();
-            ant.Id = "FIS_Datablock";
-            ant.Name = "FIS_Datablock";
-            ant.Description = "FIS_Datablock";
-            automationNodeTypes.Add(ant);
-            return automationNodeTypes;
+            HashSet<string> unqiueNodeTypes = new HashSet<string>();
+            List<AutomationNodeType> result = new List<AutomationNodeType>();
+            foreach (var item in records)
+            {
+                if (!String.IsNullOrWhiteSpace(item.Namespace))
+                {
+                    unqiueNodeTypes.Add(item.Namespace);
+                }
+            }
+
+            foreach (var nodeTypes in unqiueNodeTypes)
+            {
+                AutomationNodeType ant = new AutomationNodeType();
+                ant.Id = nodeTypes;
+                ant.Name = nodeTypes;
+                ant.Description = nodeTypes;
+                result.Add(ant);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// FIX - sTART HERE
+        /// </summary>
+        /// <param name="automationNodeTypes"></param>
+        /// <param name="row"></param>
+        /// <returns></returns>
+        private static AutomationNodeTypeParameter GetAutomationNodeTypes(List<AutomationNodeType> automationNodeTypes, Configuration row)
+        {
+            
+            var antp = new AutomationNodeTypeParameter();
+            if (row.AStagname.ToLower().Contains(_fis.ToLower()))
+            {
+                antp.AutomationNodeTypeRef = automationNodeTypes.Where(x => x.Name == _fis).First().Id;
+            }
+            else
+            {
+                antp.AutomationNodeTypeRef = automationNodeTypes.Where(x => x.Name == _fic).First().Id;
+            }
+            //else if (row.AStagname.ToLower().Contains(_global.ToLower()))
+            //{
+            //    antp.AutomationNodeTypeRef = automationNodeTypes.Where(x => x.Name == _global).First().Id;
+            //}
+            //else if (row.AStagname.ToLower().Contains(_user.ToLower()))
+            //{
+            //    antp.AutomationNodeTypeRef = automationNodeTypes.Where(x => x.Name == _user).First().Id;
+            //}
+            //else
+            //{
+            //    throw new ArgumentException($"AutomationNodeType not matched for {row.AStagname}.");
+            //}
+            antp.Id = row.AStagname.Replace('.', '_');
+            antp.DataType = DataTypeHelper.GetDataType(row.Datatype);
+            antp.MinValue = row.Lowlimit;
+            antp.MaxValue = row.Highlimit;
+            antp.ParameterValue = row.Startvalue;
+            antp.IsInternal = bool.FalseString;
+            antp.IsStatic = bool.FalseString;
+            antp.IsPersistent = bool.FalseString;
+            return antp;
         }
 
         private static void ConfigureCsvReader(CsvReader csv)

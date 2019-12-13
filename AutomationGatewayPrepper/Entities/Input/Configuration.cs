@@ -17,6 +17,8 @@ namespace AutomationGatewayPrepper.Entities.Input
         public string Linearscaling { get; set; }
         public string AStagname { get; set; }
         public string Namespace { get; set; }
-
+        public string Lowlimit { get; set; }
+        public string Highlimit { get; set; }
+        public string Startvalue { get; set; }
     }
 }
