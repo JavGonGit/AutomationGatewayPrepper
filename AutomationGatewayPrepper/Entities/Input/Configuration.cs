@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace AutomationGatewayPrepper
+namespace AutomationGatewayPrepper.Entities.Input
 {
     public class Configuration
     {
