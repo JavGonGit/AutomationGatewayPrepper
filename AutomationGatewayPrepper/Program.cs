@@ -16,34 +16,22 @@ namespace AutomationGatewayPrepper
 
             using var reader = new StreamReader(@"C:\Users\Javier\Desktop\Export.csv");
             using var csv = new CsvReader(reader);
-
-            //Remove spaces in header row
-            csv.Configuration.PrepareHeaderForMatch = (string header, int index) => Regex.Replace(header, @"\s", string.Empty);
-            csv.Configuration.Delimiter = ",";
-
-            //If any bad data is found (bad encoding/ character(s), etc...) write it out to console window
-            csv.Configuration.BadDataFound = x =>
-            {
-                Console.WriteLine($"Bad Datarow: {x.RawRecord}");
-            };
+            ConfigureCsvReader(csv);
 
             //Careful when using link on records variable as not all excel rows are loaded into memory unless .ToList() or similar methods are called.
             var records = csv.GetRecords<Configuration>();
 
-            foreach (var item in records)
-            {
-                Console.Write("hurray");
-            }
-            
-            PopulateAutomationChannel();
+            var automationChannels = PopulateAutomationChannel();
 
             //Generate csv file to import into UADM
             var randomFileName = "AutoGate_" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv";
             using (var writer = new StreamWriter(@"C:\Source\Work\AutomationGatewayPrepper\AutomationGatewayPrepper\Output\" + randomFileName))
             using (var csvWriter = new CsvWriter(writer))
             {
-                csvWriter.WriteField("\"#AutomationChannels\"");
+                csvWriter.Configuration.ShouldQuote = (field, context) => true;
+                csvWriter.WriteField("#AutomationChannels");
                 csvWriter.NextRecord();
+                csvWriter.WriteRecords(automationChannels);
             }
 
             /*
@@ -74,6 +62,19 @@ namespace AutomationGatewayPrepper
              * "OPCInst","AA","False","ChannelId_085cd9f34f1544998d931bc16d2ccbc2","NodeId","s=OPC","OnChange","","None","",""
              * 
              * */
+        }
+
+        private static void ConfigureCsvReader(CsvReader csv)
+        {
+            //Remove spaces in header row
+            csv.Configuration.PrepareHeaderForMatch = (string header, int index) => Regex.Replace(header, @"\s", string.Empty);
+            csv.Configuration.Delimiter = ",";
+
+            //If any bad data is found (bad encoding/ character(s), etc...) write it out to console window
+            csv.Configuration.BadDataFound = x =>
+            {
+                Console.WriteLine($"Bad Datarow: {x.RawRecord}");
+            };
         }
 
         private static List<AutomationChannel> PopulateAutomationChannel()

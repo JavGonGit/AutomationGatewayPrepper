@@ -1,11 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace AutomationGatewayPrepper.Entities.Output
 {
     public class AutomationChannel
     {
+        //public AutomationChannel()
+        //{
+        //    PropertyInfo[] properties = this.GetType().GetProperties();
+
+        //    foreach (var property in properties)
+        //    {
+        //        if (property.PropertyType == typeof(string) && property.GetValue(this) == null)
+        //        {
+        //            property.SetValue(this, String.Empty);
+        //        }
+        //    }
+        //}
+
         public string Id { get; set; }
         public string Name { get; set; }
         public string ConnectionFamilyType { get; set; }
