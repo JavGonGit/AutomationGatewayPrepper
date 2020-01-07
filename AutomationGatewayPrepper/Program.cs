@@ -20,7 +20,7 @@ namespace AutomationGatewayPrepper
         {
             Console.WriteLine("AutomationGatewayPrepper Starting...");
 
-            
+
             var automationNodeTypeParameters = new List<AutomationNodeTypeParameter>();
             var automationNodeInstances = new List<AutomationNodeInstance>();
             var automationNodeInstanceParameters = new List<AutomationNodeInstanceParameter>();
@@ -30,24 +30,37 @@ namespace AutomationGatewayPrepper
             ConfigureCsvReader(csv);
 
             //Yields one record at a time. Entire file is not loaded into memory.
+            var automationNodeTypes = new List<AutomationNodeType>();
+            var unqiueNodeTypes = new HashSet<string>();
             var records = csv.GetRecords<Configuration>();
-
-            var automationChannels = PopulateAutomationChannels();
-            var automationNodeTypes = GetAutomationNodeTypes(records);
-
             foreach (var row in records)
             {
                 if (!String.IsNullOrEmpty(row.Address))
                 {
+                    //Get unique NodeTypes                    
+                    if (!String.IsNullOrWhiteSpace(row.Namespace))
+                    {
+                        unqiueNodeTypes.Add(row.Namespace);
+                    }
+
                     //Populate automationNodeTypeParameters
-                    AutomationNodeTypeParameter antp = GetAutomationNodeTypes(automationNodeTypes, row);
+                    AutomationNodeTypeParameter antp = AutomationNodeTypeParameters(automationNodeTypes, row);
                     automationNodeTypeParameters.Add(antp);
+
+                    //Populate AutomationNodeInstances
+
                 }
                 else
                 {
                     //TODO log bad records
                 }
             }
+
+            // Automation Channels
+            var automationChannels = PopulateAutomationChannels();
+
+            //Add Unique list of Node Types
+            automationNodeTypes = GetAutomationNodeTypes(unqiueNodeTypes);
 
             //Generate csv file to import into UADM
             var randomFileName = "AutoGate_" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv";
@@ -61,7 +74,7 @@ namespace AutomationGatewayPrepper
                 csvWriter.WriteField("#AutomationNodeTypes");
                 csvWriter.NextRecord();
                 csvWriter.WriteRecords(automationNodeTypes);
-                csvWriter.WriteField("#AutomationNodeTypeParameter");
+                csvWriter.WriteField("#AutomationNodeTypeParameters");
                 csvWriter.NextRecord();
                 csvWriter.WriteRecords(automationNodeTypeParameters);
                 csvWriter.WriteField("#AutomationNodeInstances");
@@ -73,12 +86,27 @@ namespace AutomationGatewayPrepper
             }
         }
 
+        private static List<AutomationNodeType> GetAutomationNodeTypes(HashSet<string> unqiueNodeTypes)
+        {
+            List<AutomationNodeType> automationNodeTypes = new List<AutomationNodeType>();
+            foreach (var item in unqiueNodeTypes)
+            {
+                AutomationNodeType ant = new AutomationNodeType();
+                ant.Id = item;
+                ant.Name = item;
+                ant.Description = item;
+                automationNodeTypes.Add(ant);
+            }
+            return automationNodeTypes;
+        }
+
         private static List<AutomationNodeType> GetAutomationNodeTypes(IEnumerable<Configuration> records)
         {
             HashSet<string> unqiueNodeTypes = new HashSet<string>();
             List<AutomationNodeType> result = new List<AutomationNodeType>();
             foreach (var item in records)
             {
+                //Can improve by using HashSet check here and adding to automationNodeType if successful instead of looping twice
                 if (!String.IsNullOrWhiteSpace(item.Namespace))
                 {
                     unqiueNodeTypes.Add(item.Namespace);
@@ -103,30 +131,11 @@ namespace AutomationGatewayPrepper
         /// <param name="automationNodeTypes"></param>
         /// <param name="row"></param>
         /// <returns></returns>
-        private static AutomationNodeTypeParameter GetAutomationNodeTypes(List<AutomationNodeType> automationNodeTypes, Configuration row)
+        private static AutomationNodeTypeParameter AutomationNodeTypeParameters(List<AutomationNodeType> automationNodeTypes, Configuration row)
         {
             
             var antp = new AutomationNodeTypeParameter();
-            if (row.AStagname.ToLower().Contains(_fis.ToLower()))
-            {
-                antp.AutomationNodeTypeRef = automationNodeTypes.Where(x => x.Name == _fis).First().Id;
-            }
-            else
-            {
-                antp.AutomationNodeTypeRef = automationNodeTypes.Where(x => x.Name == _fic).First().Id;
-            }
-            //else if (row.AStagname.ToLower().Contains(_global.ToLower()))
-            //{
-            //    antp.AutomationNodeTypeRef = automationNodeTypes.Where(x => x.Name == _global).First().Id;
-            //}
-            //else if (row.AStagname.ToLower().Contains(_user.ToLower()))
-            //{
-            //    antp.AutomationNodeTypeRef = automationNodeTypes.Where(x => x.Name == _user).First().Id;
-            //}
-            //else
-            //{
-            //    throw new ArgumentException($"AutomationNodeType not matched for {row.AStagname}.");
-            //}
+            antp.AutomationNodeTypeRef = row.Namespace;
             antp.Id = row.AStagname.Replace('.', '_');
             antp.DataType = DataTypeHelper.GetDataType(row.Datatype);
             antp.MinValue = row.Lowlimit;
