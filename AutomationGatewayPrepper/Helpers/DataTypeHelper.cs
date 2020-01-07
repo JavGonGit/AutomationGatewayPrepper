@@ -63,13 +63,13 @@ namespace AutomationGatewayPrepper.Helpers
                     result = "String";
                     break;
                 case UNSIGNED8BIT:
-                    result = "USInt";
+                    result = "Datetime";
                     break;
                 case UNSIGNED16BIT:
                     result = "UInt";
                     break;
                 case UNSIGNED32BIT:
-                    result = "UDint";
+                    result = "UDInt";
                     break;
                 default:
                     throw new ArgumentException($"Unexpected datatype encountered: {datatype}. Please add this value to DataTypeHelper to resolve.");
