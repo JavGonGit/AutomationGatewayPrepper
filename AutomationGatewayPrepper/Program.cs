@@ -12,57 +12,58 @@ namespace AutomationGatewayPrepper
 {
     class Program
     {
-        private const string _fic = "FIC_";
-        private const string _fis = "FIS_";
-        private const string _global = "GLOBAL.";
-        private const string _user = "USER_";
+        private const string _ZERO_STRING = "0";
+        private const string _WINCC = "WinCC";
+        private const string _ADDRESS_TYPE = "NodeId";
+        private const string _ADDRESS_PREFIX = "ns=5;s=";
+        private const string _AQUISITION_MODE = "OnChange";
+        private const string _SOOTHING_MODE = "None";
         static void Main(string[] args)
         {
             Console.WriteLine("AutomationGatewayPrepper Starting...");
-
-
-            var automationNodeTypeParameters = new List<AutomationNodeTypeParameter>();
-            var automationNodeInstances = new List<AutomationNodeInstance>();
-            var automationNodeInstanceParameters = new List<AutomationNodeInstanceParameter>();
 
             using var reader = new StreamReader(@"C:\Users\Javier\Desktop\Export.csv");
             using var csv = new CsvReader(reader);
             ConfigureCsvReader(csv);
 
-            //Yields one record at a time. Entire file is not loaded into memory.
+            var automationChannels = PopulateAutomationChannels();
+            var automationNodeTypeParameters = new List<AutomationNodeTypeParameter>();
+            var automationNodeInstances = new List<AutomationNodeInstance>();
+            var automationNodeInstanceParameters = new List<AutomationNodeInstanceParameter>();
             var automationNodeTypes = new List<AutomationNodeType>();
             var unqiueNodeTypes = new HashSet<string>();
+
+            //Yields one record at a time. Entire file is not loaded into memory.
             var records = csv.GetRecords<Configuration>();
+            NewMethod(automationChannels, automationNodeTypeParameters, automationNodeInstances, automationNodeInstanceParameters, unqiueNodeTypes, records);
+
+            //Add Unique list of Node Types
+            automationNodeTypes = GetAutomationNodeTypes(unqiueNodeTypes);
+
+            //Generate csv file to import into UADM
+            GenerateAutomationGatewayCsv(automationChannels, automationNodeTypeParameters, automationNodeInstances, automationNodeInstanceParameters, automationNodeTypes);
+        }
+
+        private static void NewMethod(List<AutomationChannel> automationChannels, List<AutomationNodeTypeParameter> automationNodeTypeParameters, List<AutomationNodeInstance> automationNodeInstances, List<AutomationNodeInstanceParameter> automationNodeInstanceParameters, HashSet<string> unqiueNodeTypes, IEnumerable<Configuration> records)
+        {
             foreach (var row in records)
             {
-                if (!String.IsNullOrEmpty(row.Address))
+                if (!String.IsNullOrEmpty(row.Address) && !String.IsNullOrWhiteSpace(row.Namespace))
                 {
-                    //Get unique NodeTypes                    
-                    if (!String.IsNullOrWhiteSpace(row.Namespace))
-                    {
-                        unqiueNodeTypes.Add(row.Namespace);
-                    }
-
-                    //Populate automationNodeTypeParameters
-                    AutomationNodeTypeParameter antp = AutomationNodeTypeParameters(automationNodeTypes, row);
-                    automationNodeTypeParameters.Add(antp);
-
-                    //Populate AutomationNodeInstances
-
+                    unqiueNodeTypes.Add(row.Namespace);
+                    automationNodeTypeParameters.Add(GetAutomationNodeTypeParameters(row));
+                    automationNodeInstances.Add(GetAutomationNodeInstance(row));
+                    automationNodeInstanceParameters.Add(GetAutomationNodeInstanceParameters(automationChannels, row));
                 }
                 else
                 {
                     //TODO log bad records
                 }
             }
+        }
 
-            // Automation Channels
-            var automationChannels = PopulateAutomationChannels();
-
-            //Add Unique list of Node Types
-            automationNodeTypes = GetAutomationNodeTypes(unqiueNodeTypes);
-
-            //Generate csv file to import into UADM
+        private static void GenerateAutomationGatewayCsv(List<AutomationChannel> automationChannels, List<AutomationNodeTypeParameter> automationNodeTypeParameters, List<AutomationNodeInstance> automationNodeInstances, List<AutomationNodeInstanceParameter> automationNodeInstanceParameters, List<AutomationNodeType> automationNodeTypes)
+        {
             var randomFileName = "AutoGate_" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv";
             using (var writer = new StreamWriter(@"C:\Source\Work\AutomationGatewayPrepper\AutomationGatewayPrepper\Output\" + randomFileName))
             using (var csvWriter = new CsvWriter(writer))
@@ -86,6 +87,37 @@ namespace AutomationGatewayPrepper
             }
         }
 
+        private static AutomationNodeInstanceParameter GetAutomationNodeInstanceParameters(List<AutomationChannel> automationChannels, Configuration row)
+        {
+            AutomationNodeInstanceParameter anip = new AutomationNodeInstanceParameter
+            {
+
+                AutomationNodeInstanceRef = row.Namespace,
+                Id = row.Name,
+                ParameterValue = _ZERO_STRING,
+                ChannelNId = automationChannels.Where(x => x.Name.Contains(_WINCC)).First().Name,
+                AddressType = _ADDRESS_TYPE,
+                Address = _ADDRESS_PREFIX + '_' + row.AStagname,
+                AcquisitionMode = _AQUISITION_MODE,
+                //AcquisitionCycleNId = ,
+                SmoothingMode = _SOOTHING_MODE,
+                //DeltaValue = "",
+                //DeltaTime = "",
+
+            };
+            return anip;
+        }
+
+        private static AutomationNodeInstance GetAutomationNodeInstance(Configuration row)
+        {
+            return new AutomationNodeInstance
+            {
+                Id = row.Namespace,
+                Name = row.Namespace,
+                Description = row.Namespace
+            };
+        }
+
         private static List<AutomationNodeType> GetAutomationNodeTypes(HashSet<string> unqiueNodeTypes)
         {
             List<AutomationNodeType> automationNodeTypes = new List<AutomationNodeType>();
@@ -99,41 +131,10 @@ namespace AutomationGatewayPrepper
             }
             return automationNodeTypes;
         }
-
-        private static List<AutomationNodeType> GetAutomationNodeTypes(IEnumerable<Configuration> records)
+        
+        private static AutomationNodeTypeParameter GetAutomationNodeTypeParameters(Configuration row)
         {
-            HashSet<string> unqiueNodeTypes = new HashSet<string>();
-            List<AutomationNodeType> result = new List<AutomationNodeType>();
-            foreach (var item in records)
-            {
-                //Can improve by using HashSet check here and adding to automationNodeType if successful instead of looping twice
-                if (!String.IsNullOrWhiteSpace(item.Namespace))
-                {
-                    unqiueNodeTypes.Add(item.Namespace);
-                }
-            }
 
-            foreach (var nodeTypes in unqiueNodeTypes)
-            {
-                AutomationNodeType ant = new AutomationNodeType();
-                ant.Id = nodeTypes;
-                ant.Name = nodeTypes;
-                ant.Description = nodeTypes;
-                result.Add(ant);
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// FIX - sTART HERE
-        /// </summary>
-        /// <param name="automationNodeTypes"></param>
-        /// <param name="row"></param>
-        /// <returns></returns>
-        private static AutomationNodeTypeParameter AutomationNodeTypeParameters(List<AutomationNodeType> automationNodeTypes, Configuration row)
-        {
-            
             var antp = new AutomationNodeTypeParameter();
             antp.AutomationNodeTypeRef = row.Namespace;
             antp.Id = row.AStagname.Replace('.', '_');
@@ -175,7 +176,7 @@ namespace AutomationGatewayPrepper
             automationChannels.Add(ac);
 
             ac = new AutomationChannel();
-            ac.Id = "WinCC";
+            ac.Id = _WINCC;
             ac.Name = "WinCC OPC";
             ac.ConnectionFamilyType = "Undefined";
             ac.ConnectionType = "OPCUA";
