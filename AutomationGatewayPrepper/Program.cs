@@ -100,7 +100,7 @@ namespace AutomationGatewayPrepper
             {
                 AutomationNodeInstanceRef = row.Namespace,
                 Id = row.Name,
-                ParameterValue = ZERO_STRING,
+                ParameterValue = DataTypeHelper.GetParameterValue(row.Datatype),
                 ChannelNId = automationChannels.Where(x => x.Name.Contains(_WINCC)).First().Id,
                 AddressType = ADDRESS_TYPE,
                 Address = ADDRESS_PREFIX + row.Namespace + '_' + row.AStagname,
