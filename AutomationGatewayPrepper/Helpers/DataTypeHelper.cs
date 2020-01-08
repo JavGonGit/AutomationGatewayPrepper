@@ -76,5 +76,41 @@ namespace AutomationGatewayPrepper.Helpers
             }
             return result;
         }
+
+        public static string GetParameterValue(String datatype)
+        {
+            string result;
+            const string zero = "0";
+            switch (datatype)
+            {
+                case SIGNED16:
+                    result = zero;
+                    break;
+                case SIGNED32:
+                    result = zero;
+                    break;
+                case BINARY_TAG:
+                    result = bool.FalseString;
+                    break;
+                case FLOAT:
+                    result = zero;
+                    break;
+                case TEXT8BIT:
+                    result = String.Empty;
+                    break;
+                case UNSIGNED8BIT:
+                    result = String.Empty;
+                    break;
+                case UNSIGNED16BIT:
+                    result = zero;
+                    break;
+                case UNSIGNED32BIT:
+                    result = zero;
+                    break;
+                default:
+                    throw new ArgumentException($"Unexpected datatype encountered: {datatype}. Please add this value to DataTypeHelper to resolve.");
+            }
+            return result;
+        }
     }
 }

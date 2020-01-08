@@ -9,7 +9,9 @@ namespace AutomationGatewayPrepper.Entities.Output
         public string AutomationNodeTypeRef { get; set; }
         public string Id { get; set; }
         public string DataType { get; set; }
+        public string ParameterType { get; set; }
         public string ParameterValue { get; set; }
+        public string ParameterValues { get; set; }
         public string MinValue { get; set; }
         public string MaxValue { get; set; }
         public string MaxLength { get; set; }

@@ -12,12 +12,7 @@ namespace AutomationGatewayPrepper
 {
     class Program
     {
-        private const string _ZERO_STRING = "0";
         private const string _WINCC = "WinCC";
-        private const string _ADDRESS_TYPE = "NodeId";
-        private const string _ADDRESS_PREFIX = "ns=5;s=";
-        private const string _AQUISITION_MODE = "OnChange";
-        private const string _SOOTHING_MODE = "None";
         static void Main(string[] args)
         {
             Console.WriteLine("AutomationGatewayPrepper Starting...");
@@ -40,7 +35,7 @@ namespace AutomationGatewayPrepper
                 if (!String.IsNullOrEmpty(row.Address) && !String.IsNullOrWhiteSpace(row.Namespace))
                 {
                     unqiueNodeTypes.Add(row.Namespace);
-                    automationNodeTypeParameters.Add(GetAutomationNodeTypeParameters(row));                    
+                    automationNodeTypeParameters.Add(GetAutomationNodeTypeParameters(row));
                     automationNodeInstanceParameters.Add(GetAutomationNodeInstanceParameters(automationChannels, row));
                 }
                 else
@@ -95,18 +90,23 @@ namespace AutomationGatewayPrepper
 
         private static AutomationNodeInstanceParameter GetAutomationNodeInstanceParameters(List<AutomationChannel> automationChannels, Configuration row)
         {
+            const string ZERO_STRING = "0";
+            const string ADDRESS_TYPE = "NodeId";
+            const string ADDRESS_PREFIX = "ns=5;s=";
+            const string AQUISITION_MODE = "OnChange";
+            const string SOOTHING_MODE = "None";
+
             AutomationNodeInstanceParameter anip = new AutomationNodeInstanceParameter
             {
-
                 AutomationNodeInstanceRef = row.Namespace,
                 Id = row.Name,
-                ParameterValue = _ZERO_STRING,
+                ParameterValue = ZERO_STRING,
                 ChannelNId = automationChannels.Where(x => x.Name.Contains(_WINCC)).First().Id,
-                AddressType = _ADDRESS_TYPE,
-                Address = _ADDRESS_PREFIX + '_' + row.AStagname,
-                AcquisitionMode = _AQUISITION_MODE,
+                AddressType = ADDRESS_TYPE,
+                Address = ADDRESS_PREFIX + row.Namespace + '_' + row.AStagname,
+                AcquisitionMode = AQUISITION_MODE,
                 //AcquisitionCycleNId = ,
-                SmoothingMode = _SOOTHING_MODE,
+                SmoothingMode = SOOTHING_MODE,
                 //DeltaValue = "",
                 //DeltaTime = "",
 
@@ -143,17 +143,17 @@ namespace AutomationGatewayPrepper
             }
             return automationNodeTypes;
         }
-        
+
         private static AutomationNodeTypeParameter GetAutomationNodeTypeParameters(Configuration row)
         {
-
             var antp = new AutomationNodeTypeParameter();
             antp.AutomationNodeTypeRef = row.Namespace;
-            antp.Id = row.AStagname.Replace('.', '_');
+            antp.Id = row.Name;
             antp.DataType = DataTypeHelper.GetDataType(row.Datatype);
             antp.MinValue = row.Lowlimit;
             antp.MaxValue = row.Highlimit;
-            antp.ParameterValue = row.Startvalue;
+            antp.ParameterType = "Scalar";
+            antp.ParameterValue = DataTypeHelper.GetParameterValue(row.Datatype);
             antp.IsInternal = bool.FalseString;
             antp.IsStatic = bool.FalseString;
             antp.IsPersistent = bool.FalseString;
