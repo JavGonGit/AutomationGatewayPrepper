@@ -90,7 +90,6 @@ namespace AutomationGatewayPrepper
 
         private static AutomationNodeInstanceParameter GetAutomationNodeInstanceParameters(List<AutomationChannel> automationChannels, Configuration row)
         {
-            const string ZERO_STRING = "0";
             const string ADDRESS_TYPE = "NodeId";
             const string ADDRESS_PREFIX = "ns=5;s=";
             const string AQUISITION_MODE = "OnChange";
