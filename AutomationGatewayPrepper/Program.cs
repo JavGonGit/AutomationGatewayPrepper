@@ -4,6 +4,7 @@ using AutomationGatewayPrepper.Helpers;
 using CsvHelper;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -16,10 +17,16 @@ namespace AutomationGatewayPrepper
         static void Main(string[] args)
         {
             Console.WriteLine("AutomationGatewayPrepper Starting...");
+            if (!InputParser.Read(args, out string inputFile, out string outputFile))
+                return;
 
-            using var reader = new StreamReader(@"C:\Users\Javier\Desktop\Export.csv");
-            using var csv = new CsvReader(reader);
-            ConfigureCsvReader(csv);
+            Configuration[] records;
+            using (var reader = new StreamReader(inputFile))
+                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
+                {
+                    ConfigureCsvReader(csv);
+                    records = csv.GetRecords<Configuration>().ToArray();
+                }
 
             var automationChannels = PopulateAutomationChannels();
             var automationNodeTypeParameters = new List<AutomationNodeTypeParameter>();
@@ -29,7 +36,6 @@ namespace AutomationGatewayPrepper
             var unqiueNodeTypes = new HashSet<string>();
 
             //Yields one record at a time. Entire file is not loaded into memory.
-            var records = csv.GetRecords<Configuration>();
             foreach (var row in records)
             {
                 if (!String.IsNullOrEmpty(row.Address) && !String.IsNullOrWhiteSpace(row.Namespace))
@@ -51,15 +57,13 @@ namespace AutomationGatewayPrepper
             automationNodeInstances = GetAutomationNodeInstance(unqiueNodeTypes);
 
             //Generate csv file to import into UADM
-            GenerateAutomationGatewayCsv(automationChannels, automationNodeTypeParameters, automationNodeInstances, automationNodeInstanceParameters, automationNodeTypes);
+            GenerateAutomationGatewayCsv(outputFile, automationChannels, automationNodeTypeParameters, automationNodeInstances, automationNodeInstanceParameters, automationNodeTypes);
         }
 
-
-        private static void GenerateAutomationGatewayCsv(List<AutomationChannel> automationChannels, List<AutomationNodeTypeParameter> automationNodeTypeParameters, List<AutomationNodeInstance> automationNodeInstances, List<AutomationNodeInstanceParameter> automationNodeInstanceParameters, List<AutomationNodeType> automationNodeTypes)
+        private static void GenerateAutomationGatewayCsv(string outputFile, List<AutomationChannel> automationChannels, List<AutomationNodeTypeParameter> automationNodeTypeParameters, List<AutomationNodeInstance> automationNodeInstances, List<AutomationNodeInstanceParameter> automationNodeInstanceParameters, List<AutomationNodeType> automationNodeTypes)
         {
-            var randomFileName = "AutoGate_" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + ".csv";
-            using (var writer = new StreamWriter(@"C:\Source\Work\AutomationGatewayPrepper\AutomationGatewayPrepper\Output\" + randomFileName))
-            using (var csvWriter = new CsvWriter(writer))
+            using (var writer = new StreamWriter(outputFile))
+                using (var csvWriter = new CsvWriter(writer, CultureInfo.InvariantCulture))
             {
                 csvWriter.Configuration.ShouldQuote = (field, context) => true;
                 csvWriter.WriteField("#AutomationChannels");
