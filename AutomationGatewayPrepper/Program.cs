@@ -102,7 +102,7 @@ namespace AutomationGatewayPrepper
             AutomationNodeInstanceParameter anip = new AutomationNodeInstanceParameter
             {
                 AutomationNodeInstanceRef = row.Namespace,
-                Id = row.Name,
+                Id = DataTypeHelper.GetParameterName(row.Name),
                 ParameterValue = DataTypeHelper.GetParameterValue(row.Datatype),
                 ChannelNId = automationChannels.Where(x => x.Name.Contains(_WINCC)).First().Id,
                 AddressType = ADDRESS_TYPE,
@@ -151,7 +151,7 @@ namespace AutomationGatewayPrepper
         {
             var antp = new AutomationNodeTypeParameter();
             antp.AutomationNodeTypeRef = row.Namespace;
-            antp.Id = row.Name;
+            antp.Id = DataTypeHelper.GetParameterName(row.Name);
             antp.DataType = DataTypeHelper.GetDataType(row.Datatype);
             antp.MinValue = row.Lowlimit;
             antp.MaxValue = row.Highlimit;

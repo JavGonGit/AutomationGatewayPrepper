@@ -65,6 +65,7 @@
     <Compile Include="Entities\Output\AutomationNodeType.cs" />
     <Compile Include="Entities\Output\AutomationNodeTypeParameter.cs" />
     <Compile Include="Helpers\DataTypeHelper.cs" />
+    <Compile Include="Helpers\InputParser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

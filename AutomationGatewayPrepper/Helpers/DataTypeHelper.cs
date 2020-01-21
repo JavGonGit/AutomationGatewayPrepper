@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace AutomationGatewayPrepper.Helpers
 {
@@ -41,6 +42,9 @@ namespace AutomationGatewayPrepper.Helpers
         private const string UNSIGNED8BIT = "Unsigned 8-bit value";
         private const string UNSIGNED16BIT = "Unsigned 16-bit value";
         private const string UNSIGNED32BIT = "Unsigned 32-bit value";
+
+        private const string _tagParseExpression = @"^ *(?<PlcId>[A-Z]{3})_(?<Scrap>.*)_(?<DatablockType>FIC|FIS|UR|GLOBAL)_(?<TagName>[^ ]+)";
+        private static Regex TagParse = new Regex(_tagParseExpression, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
         public static string GetDataType(String datatype)
         {
@@ -111,6 +115,31 @@ namespace AutomationGatewayPrepper.Helpers
                     throw new ArgumentException($"Unexpected datatype encountered: {datatype}. Please add this value to DataTypeHelper to resolve.");
             }
             return result;
+        }
+
+        public static string GetParameterName(string id)
+        {
+            var parse = TagParse.Match(TranslateParameterRecords(id));
+            if (!parse.Success)
+                throw new Exception(string.Format("Failed to parse tag '{0}'.", id));
+
+            var plcId = parse.Groups["PlcId"].Value;
+            var dbType = parse.Groups["DatablockType"].Value;
+            var tagName = parse.Groups["TagName"].Value;
+
+            return string.Format("{0}_{1}_{2}", plcId, dbType, tagName);
+        }
+
+        public static string TranslateParameterRecords(string id)
+        {
+            var builder = new StringBuilder(id);
+
+            builder.Replace("FIC_Command", "FIC");
+            builder.Replace("FIS_Status", "FIS");
+            builder.Replace("Global_Permissives", "GLOBAL");
+            builder.Replace("User_Read", "UR");
+
+            return builder.ToString();
         }
     }
 }
