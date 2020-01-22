@@ -139,6 +139,8 @@ namespace AutomationGatewayPrepper.Helpers
             builder.Replace("Global_Permissives", "GLOBAL");
             builder.Replace("User_Read", "UR");
 
+            builder.Replace("ID", "Id");
+
             return builder.ToString();
         }
     }
