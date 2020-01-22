@@ -67,7 +67,7 @@ namespace AutomationGatewayPrepper.Helpers
                     result = "String";
                     break;
                 case UNSIGNED8BIT:
-                    result = "Datetime";
+                    result = "Byte";
                     break;
                 case UNSIGNED16BIT:
                     result = "UInt";
@@ -103,7 +103,7 @@ namespace AutomationGatewayPrepper.Helpers
                     result = String.Empty;
                     break;
                 case UNSIGNED8BIT:
-                    result = String.Empty;
+                    result = zero;
                     break;
                 case UNSIGNED16BIT:
                     result = zero;
